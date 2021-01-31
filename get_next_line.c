@@ -1,61 +1,91 @@
-#include <fcntl.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#define BUFFER_SIZE 1024
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: fsamson <fsamson@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2020/11/11 10:20:38 by fsamson           #+#    #+#             */
+/*   Updated: 2020/11/26 11:24:41 by fsamson          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-char	*check_reaminder(char *reaminder, char **line)
+#include "get_next_line.h"
+
+char	*get_save(char *save)
 {
-	char	*ptr_to_nl;
+	char	*rtn;
+	int		i;
+	int		j;
 
-	ptr_to_nl = NULL;
-	if (reaminder)
+	i = 0;
+	j = 0;
+	if (!save)
+		return (0);
+	while (save[i] && save[i] != '\n')
+		i++;
+	if (!save[i])
 	{
-		if ((ptr_to_nl = strchr(reaminder, '\n')))
-		{
-			ptr_to_nl = '\0';
-			*line = strdup(reaminder);
-			strcpy(reaminder, ++ptr_to_nl);
-		}
-
+		free(save);
+		return (0);
 	}
-	else
-		*line = strdup(reaminder);
-	return (ptr_to_nl);
+	if (!(rtn = malloc(sizeof(char) * ((ft_strlen(save) - i) + 1))))
+		return (0);
+	i++;
+	while (save[i])
+		rtn[j++] = save[i++];
+	rtn[j] = '\0';
+	free(save);
+	return (rtn);
 }
 
-int	get_next_line(int fd, char **line)
+char	*get_line(char *str)
 {
-	char	buf[BUFFER_SIZE + 1];
-	int	bytes_readed;
-	char	*ptr_to_nl;
-	static char	*reaminder;
+	int		i;
+	char	*rtn;
 
-	ptr_to_nl = check_reaminder(reaminder, line);
-	while (!ptr_to_nl && (bytes_readed = read(fd, buf, BUFFER_SIZE)))
+	i = 0;
+	if (!str)
+		return (0);
+	while (str[i] && str[i] != '\n')
+		i++;
+	if (!(rtn = malloc(sizeof(char) * (i + 1))))
+		return (0);
+	i = 0;
+	while (str[i] && str[i] != '\n')
 	{
-		buf[bytes_readed] = '\0';
-		if ((ptr_to_nl = strchr(buf, '\n')))
-		{
-			*ptr_to_nl = '\0';
-			ptr_to_nl++;
-			reaminder = strdup(ptr_to_nl);
-		}
-		*line = strcat(*line, buf);
+		rtn[i] = str[i];
+		i++;
 	}
-	return (0);
+	rtn[i] = '\0';
+	return (rtn);
 }
 
-int	main(void)
+int		get_next_line(int fd, char **line)
 {
-	char	*line;
-	int	fd;
+	char			*buff;
+	static char		*save;
+	int				reader;
 
-	fd = open("text.txt", O_RDONLY);
-	get_next_line(fd, &line);
-	printf("%s\n", line);
-	get_next_line(fd, &line);
-	printf("%s\n", line);
-	return (0);
+	reader = 1;
+	if (fd < 0 || !line || BUFFER_SIZE <= 0)
+		return (-1);
+	if (!(buff = malloc(sizeof(char) * (BUFFER_SIZE + 1))))
+		return (-1);
+	while (!has_return(save) && reader != 0)
+	{
+		if ((reader = read(fd, buff, BUFFER_SIZE)) == -1)
+		{
+			free(buff);
+			return (-1);
+		}
+		buff[reader] = '\0';
+		save = join_str(save, buff);
+	}
+	free(buff);
+	*line = get_line(save);
+	save = get_save(save);
+	if (reader == 0)
+		return (0);
+	return (1);
 }
